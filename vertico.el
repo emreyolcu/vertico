@@ -144,6 +144,14 @@ The value should lie between 0 and vertico-count/2."
   "TAB" #'vertico-insert
   "<touchscreen-begin>" #'ignore)
 
+(defvar vertico--display-table
+  (let ((table (make-display-table)))
+    (set-char-table-parent table standard-display-table)
+    (set-display-table-slot table 'truncation (make-glyph-code ? ))
+    (set-display-table-slot table 'wrap (make-glyph-code ? ))
+    table)
+  "Display table hiding truncation and continuation glyphs.")
+
 (defvar vertico--locals
   '((scroll-margin . 0)
     (completion-auto-help . nil)
@@ -608,6 +616,7 @@ the stack trace is shown in the *Messages* buffer."
 
 (cl-defgeneric vertico--setup ()
   "Setup completion UI."
+  (setq buffer-display-table vertico--display-table)
   (dolist (var vertico--locals)
     (set (make-local-variable (car var)) (cdr var)))
   (setq-local vertico--input t
