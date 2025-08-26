@@ -49,9 +49,9 @@
   :group 'minibuffer
   :prefix "vertico-")
 
-(defcustom vertico-count-format (cons "%-6s " "%s/%s")
+(defcustom vertico-count-format "%s/%s"
   "Format string used for the candidate count."
-  :type '(choice (const :tag "No candidate count" nil) (cons string string)))
+  :type '(choice (const :tag "No candidate count" nil) string))
 
 (defcustom vertico-group-format
   (concat #("    " 0 4 (face vertico-group-separator))
@@ -435,18 +435,24 @@ The value should lie between 0 and vertico-count/2."
 
 (defun vertico--format-count ()
   "Format the count string."
-  (format (car vertico-count-format)
-          (format (cdr vertico-count-format)
-                  (cond ((>= vertico--index 0) (1+ vertico--index))
-                        (vertico--allow-prompt "*")
-                        (t "!"))
-                  vertico--total)))
+  (format vertico-count-format
+          (cond ((>= vertico--index 0) (1+ vertico--index))
+                (vertico--allow-prompt "*")
+                (t "!"))
+          vertico--total))
 
 (defun vertico--display-count ()
   "Update count overlay `vertico--count-ov'."
-  (move-overlay vertico--count-ov (point-min) (point-min))
-  (overlay-put vertico--count-ov 'before-string
-               (if vertico-count-format (vertico--format-count) "")))
+  (move-overlay vertico--count-ov (point-max) (point-max))
+  (overlay-put vertico--count-ov 'after-string
+               (concat
+                #(" " 0 1 (cursor t))
+                (if vertico-count-format
+                    (let ((count (vertico--format-count)))
+                      (concat
+                       (propertize " " 'display `(space :align-to (- right ,(length count) 1)))
+                       (propertize count 'face 'minibuffer-prompt)))
+                  ""))))
 
 (defun vertico--prompt-selection ()
   "Highlight the prompt if selected."
@@ -582,8 +588,8 @@ the stack trace is shown in the *Messages* buffer."
 (cl-defgeneric vertico--display-candidates (lines)
   "Update candidates overlay `vertico--candidates-ov' with LINES."
   (move-overlay vertico--candidates-ov (point-max) (point-max))
-  (overlay-put vertico--candidates-ov 'after-string
-               (apply #'concat #(" " 0 1 (cursor t)) (and lines "\n") lines)))
+  (overlay-put vertico--candidates-ov 'before-string
+               (apply #'concat (and lines "\n") lines)))
 
 (cl-defgeneric vertico--resize ()
   "Resize active minibuffer window."
@@ -619,8 +625,7 @@ the stack trace is shown in the *Messages* buffer."
               completion-show-inline-help nil
               fringe-indicator-alist '((continuation) (truncation))
               vertico--candidates-ov (make-overlay (point-max) (point-max) nil t t)
-              vertico--count-ov (make-overlay (point-min) (point-min) nil t t))
-  (overlay-put vertico--count-ov 'priority 1) ;; For `minibuffer-depth-indicate-mode'
+              vertico--count-ov (make-overlay (point-max) (point-max) nil t t))
   (use-local-map vertico-map)
   (add-hook 'pre-command-hook #'vertico--prepare nil 'local)
   (add-hook 'post-command-hook #'vertico--exhibit nil 'local))
