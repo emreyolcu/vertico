@@ -84,6 +84,10 @@
   (when vertico-flat-mode
     (push `(vertico--input . ,vertico-flat-map) minor-mode-map-alist)))
 
+(cl-defmethod vertico--display-count (&context (vertico-flat-mode (eql t)))
+  (move-overlay vertico--count-ov (point-max) (point-max))
+  (overlay-put vertico--count-ov 'after-string nil))
+
 (cl-defmethod vertico--display-candidates (candidates &context (vertico-flat-mode (eql t)))
   (setq-local truncate-lines nil
               resize-mini-windows t)
@@ -97,7 +101,8 @@
                   (when-let* ((fmt (plist-get vertico-flat-format :single)))
                     (format fmt (substring-no-properties (car candidates))))))
             (t (format (plist-get vertico-flat-format (if (< vertico--index 0) :prompt :multiple))
-                       (string-join candidates (plist-get vertico-flat-format :separator))))))))
+                       (string-join candidates (plist-get vertico-flat-format :separator)))))
+           (vertico--format-count-aligned))))
 
 (cl-defmethod vertico--arrange-candidates (&context (vertico-flat-mode (eql t)))
   (let* ((index (max 0 vertico--index)) (count vertico-count)
